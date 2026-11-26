@@ -1,1 +1,458 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#09090B">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>DUMP.AI — Raw Photo Prompt App</title>
+    
+    <!-- Dynamic Web App Manifest agar bisa di-install sebagai Aplikasi HP -->
+    <link rel="manifest" id="pwa-manifest">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"Space Mono"', 'monospace'],
+                    },
+                    colors: {
+                        acid: '#CCF381',
+                        lavender: '#C4B5FD',
+                        bubblegum: '#FF85B3',
+                        darkbg: '#09090B',
+                        cardbg: '#131318',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #09090B;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        textarea, input {
+            user-select: text;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="text-zinc-100 min-h-screen pb-28 antialiased selection:bg-acid selection:text-zinc-950">
+
+    <!-- Top App Bar -->
+    <nav class="sticky top-0 z-30 bg-darkbg/85 backdrop-blur-md border-b border-zinc-800/80 px-4 py-3.5">
+        <div class="max-w-3xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-acid flex items-center justify-center text-zinc-950 font-black text-sm shadow-md shadow-acid/20">
+                    D.
+                </div>
+                <div>
+                    <h1 class="text-lg font-extrabold tracking-tight leading-none text-white">
+                        dump<span class="text-acid">.ai</span>
+                    </h1>
+                    <span class="text-[10px] font-mono text-zinc-400">FACE LOCK • ANTI-CGI</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button id="installBtn" onclick="installPWA()" class="hidden text-xs font-bold bg-acid text-zinc-950 px-3 py-1.5 rounded-full animate-pulse cursor-pointer">
+                    <i class="fas fa-download mr-1"></i> Install App
+                </button>
+                <button onclick="switchTab('history')" id="tabHistoryBtn" class="text-xs font-semibold bg-zinc-900 border border-zinc-800 hover:border-lavender text-zinc-300 px-3 py-1.5 rounded-full transition cursor-pointer">
+                    <i class="fas fa-clock-rotate-left text-lavender mr-1"></i> Riwayat (<span id="historyCount">0</span>)
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="max-w-3xl mx-auto px-4 pt-5">
+        
+        <!-- VIEW 1: BUILDER -->
+        <div id="builderView" class="space-y-4">
+            
+            <!-- Horizontal Scroll Quick Presets -->
+            <div>
+                <p class="text-[11px] font-mono uppercase tracking-wider text-zinc-400 mb-2">Vibe Presets (Sekali Tap)</p>
+                <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                    <button onclick="applyPreset('flash')" class="flex-shrink-0 text-xs font-bold bg-zinc-900 active:bg-acid active:text-zinc-950 border border-zinc-800 px-3.5 py-2 rounded-2xl transition cursor-pointer">
+                        ⚡ Night Flash Dump
+                    </button>
+                    <button onclick="applyPreset('wide')" class="flex-shrink-0 text-xs font-bold bg-zinc-900 active:bg-lavender active:text-zinc-950 border border-zinc-800 px-3.5 py-2 rounded-2xl transition cursor-pointer">
+                        📸 0.5x Wide Selfie
+                    </button>
+                    <button onclick="applyPreset('mirror')" class="flex-shrink-0 text-xs font-bold bg-zinc-900 active:bg-bubblegum active:text-zinc-950 border border-zinc-800 px-3.5 py-2 rounded-2xl transition cursor-pointer">
+                        🪞 Messy Mirror Pic
+                    </button>
+                    <button onclick="applyPreset('street')" class="flex-shrink-0 text-xs font-bold bg-zinc-900 active:bg-acid active:text-zinc-950 border border-zinc-800 px-3.5 py-2 rounded-2xl transition cursor-pointer">
+                        🍜 Jajan Pinggir Jalan
+                    </button>
+                </div>
+            </div>
+
+            <!-- 1. Face Lock Card -->
+            <div class="bg-cardbg border border-zinc-800/90 rounded-3xl p-4 shadow-lg">
+                <div class="flex items-center justify-between mb-2.5">
+                    <span class="text-xs font-mono font-bold text-lavender">01 // FACE LOCK</span>
+                    <label class="inline-flex items-center cursor-pointer gap-2">
+                        <span id="toggleLabel" class="text-[11px] font-mono font-bold text-acid">LOCKED 🔒</span>
+                        <input type="checkbox" id="keepIdentity" checked onchange="generatePrompt()" class="sr-only peer">
+                        <div class="w-9 h-5 bg-zinc-800 rounded-full peer peer-checked:bg-acid relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-zinc-950 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-4"></div>
+                    </label>
+                </div>
+
+                <div class="flex items-center gap-3.5 bg-zinc-950 border border-dashed border-zinc-700 rounded-2xl p-3">
+                    <div class="w-14 h-14 rounded-xl overflow-hidden bg-zinc-900 flex-shrink-0 flex items-center justify-center border border-zinc-800">
+                        <img id="facePreview" src="" alt="Face" class="w-full h-full object-cover hidden">
+                        <i id="facePlaceholder" class="fas fa-user-check text-zinc-600 text-xl"></i>
+                    </div>
+                    <div class="flex-grow min-w-0">
+                        <p id="fileName" class="text-sm font-bold text-white truncate">Pilih Foto Wajah</p>
+                        <p class="text-[11px] text-zinc-400">Wajah tidak akan berubah saat di-generate</p>
+                    </div>
+                    <label class="bg-acid active:scale-95 text-zinc-950 text-xs font-extrabold px-3.5 py-2.5 rounded-xl cursor-pointer transition flex-shrink-0">
+                        Upload
+                        <input type="file" id="faceInput" accept="image/*" onchange="handleImageUpload(event)" class="hidden">
+                    </label>
+                </div>
+            </div>
+
+            <!-- 2. Scene & Quick Tags -->
+            <div class="bg-cardbg border border-zinc-800/90 rounded-3xl p-4 shadow-lg space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-mono font-bold text-lavender">02 // AKTIVITAS & GAYA</span>
+                    <button onclick="resetForm()" class="text-[11px] font-mono text-zinc-500 hover:text-bubblegum cursor-pointer">
+                        [reset]
+                    </button>
+                </div>
+
+                <textarea id="activity" rows="3" oninput="generatePrompt()"
+                    placeholder="Ketik aktivitas/tempat (contoh: eating street food at night, wearing oversized vintage jacket)..."
+                    class="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-3.5 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-acid transition"></textarea>
+
+                <!-- Quick Detail Tags -->
+                <div class="flex flex-wrap gap-1.5">
+                    <button onclick="appendTag('messy hair with claw clip')" class="text-[11px] bg-zinc-950 hover:border-acid border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-lg transition cursor-pointer">+ Jedai / Claw Clip</button>
+                    <button onclick="appendTag('oversized graphic tee')" class="text-[11px] bg-zinc-950 hover:border-acid border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-lg transition cursor-pointer">+ Kaos Oversize</button>
+                    <button onclick="appendTag('no makeup bare face')" class="text-[11px] bg-zinc-950 hover:border-acid border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-lg transition cursor-pointer">+ Bare Face / No Makeup</button>
+                    <button onclick="appendTag('holding iced coffee cup')" class="text-[11px] bg-zinc-950 hover:border-acid border border-zinc-800 text-zinc-300 px-2.5 py-1 rounded-lg transition cursor-pointer">+ Pegang Es Kopi</button>
+                </div>
+            </div>
+
+            <!-- 3. Camera & Ratio -->
+            <div class="bg-cardbg border border-zinc-800/90 rounded-3xl p-4 shadow-lg space-y-3">
+                <span class="text-xs font-mono font-bold text-lavender block">03 // KAMERA HP & RASIO</span>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div class="sm:col-span-2">
+                        <select id="camera" onchange="generatePrompt()"
+                            class="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-3.5 py-3 text-xs font-medium text-white focus:outline-none focus:border-acid transition">
+                            <option value="shot on iPhone 13, raw unedited camera roll photo, direct harsh flash at night, sharp shadows">iPhone 13 — Night Direct Flash</option>
+                            <option value="shot on iPhone 14 front camera, 0.5x ultra wide angle distortion, casual handheld selfie">iPhone 0.5x — Ultra Wide Selfie</option>
+                            <option value="shot on mid-range Android smartphone camera, slightly soft focus, authentic low-light digital grain">Android Camera — Natural Grain</option>
+                            <option value="casual mirror selfie taken on iPhone, bedroom ambient lighting, unposed everyday snapshot">Bedroom Mirror Selfie</option>
+                            <option value="quick candid snapshot on smartphone, natural overcast daylight, zero color grading">Daylight Candid — No Filter</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="ratio" onchange="generatePrompt()"
+                            class="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-3.5 py-3 text-xs font-medium text-white focus:outline-none focus:border-acid transition">
+                            <option value="">Rasio Default</option>
+                            <option value="--ar 9:16">9:16 (Story/TikTok)</option>
+                            <option value="--ar 3:4">3:4 (Kamera HP)</option>
+                            <option value="--ar 1:1">1:1 (Square)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Realism Checkboxes -->
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <label class="flex items-center gap-2 bg-zinc-950 border border-zinc-800/80 p-2.5 rounded-xl cursor-pointer text-[11px] font-medium">
+                        <input type="checkbox" id="optSkinHair" checked onchange="generatePrompt()" class="w-3.5 h-3.5 accent-acid rounded">
+                        <span>Pori-pori Asli (Anti-Mulus)</span>
+                    </label>
+                    <label class="flex items-center gap-2 bg-zinc-950 border border-zinc-800/80 p-2.5 rounded-xl cursor-pointer text-[11px] font-medium">
+                        <input type="checkbox" id="optAntiBokeh" checked onchange="generatePrompt()" class="w-3.5 h-3.5 accent-acid rounded">
+                        <span>Tanpa Bokeh DSLR</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 4. Live Output Box -->
+            <div class="bg-cardbg border border-zinc-800/90 rounded-3xl p-4 shadow-lg space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-mono font-bold text-acid">READY PROMPT</span>
+                    <button onclick="saveToHistory()" class="text-xs font-bold text-lavender hover:underline cursor-pointer">
+                        <i class="fas fa-bookmark mr-1"></i> Simpan ke Riwayat
+                    </button>
+                </div>
+
+                <textarea id="output" readonly rows="5"
+                    placeholder="Hasil prompt otomatis muncul di sini..."
+                    class="w-full bg-zinc-950 border border-zinc-800 rounded-2xl p-3.5 text-xs text-acid/95 leading-relaxed focus:outline-none resize-none font-mono"></textarea>
+
+                <details class="text-xs">
+                    <summary class="text-zinc-400 font-mono cursor-pointer hover:text-bubblegum">Lihat Negative Prompt (Anti-CGI)</summary>
+                    <textarea id="negativeOutput" readonly rows="3"
+                        class="w-full mt-2 bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 text-[11px] text-zinc-400 focus:outline-none resize-none font-mono">3d render, cgi, octane render, unreal engine, illustration, anime, cartoon, altered face, different person, face swap distortion, airbrushed skin, smooth plastic skin, studio lighting, professional DSLR, shallow depth of field, heavy bokeh, overly polished, ai generated look</textarea>
+                </details>
+            </div>
+        </div>
+
+        <!-- VIEW 2: HISTORY -->
+        <div id="historyView" class="hidden space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-base font-bold text-white">Riwayat Prompt Tersimpan</h2>
+                <button onclick="switchTab('builder')" class="text-xs font-bold bg-zinc-800 text-white px-3.5 py-1.5 rounded-full cursor-pointer">
+                    <i class="fas fa-arrow-left mr-1"></i> Kembali
+                </button>
+            </div>
+            <div id="historyList" class="space-y-3">
+                <!-- Item riwayat dirender via JS -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Sticky Bottom Action Bar (Mobile App Feel) -->
+    <div class="fixed bottom-0 inset-x-0 z-30 bg-darkbg/90 backdrop-blur-lg border-t border-zinc-800/90 p-3.5">
+        <div class="max-w-3xl mx-auto grid grid-cols-3 gap-2.5">
+            <button onclick="copyText('output', 'copyBtn1', 'Copy Prompt')" id="copyBtn1"
+                class="col-span-2 bg-acid active:scale-[0.98] text-zinc-950 font-extrabold py-3.5 px-4 rounded-2xl transition flex items-center justify-center gap-2 text-sm shadow-lg shadow-acid/15 cursor-pointer">
+                <i class="fas fa-copy"></i>
+                <span>Copy Prompt</span>
+            </button>
+            <button onclick="copyText('negativeOutput', 'copyBtn2', 'Negative')" id="copyBtn2"
+                class="bg-zinc-900 active:scale-[0.98] text-zinc-200 border border-zinc-700 font-bold py-3.5 px-3 rounded-2xl transition flex items-center justify-center gap-1.5 text-xs cursor-pointer">
+                <i class="fas fa-ban text-bubblegum"></i>
+                <span>Negative</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Script Logika & PWA Service -->
+    <script>
+        // 1. Generate Web App Manifest secara dinamis agar bisa di-install sebagai Aplikasi
+        const manifestData = {
+            name: "DUMP.AI — Raw Photo Prompt App",
+            short_name: "DUMP.AI",
+            start_url: ".",
+            display: "standalone",
+            background_color: "#09090B",
+            theme_color: "#09090B",
+            icons: [{
+                src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%23CCF381'/%3E%3Ctext x='50' y='68' font-family='sans-serif' font-weight='900' font-size='55' text-anchor='middle' fill='%2309090B'%3ED.%3C/text%3E%3C/svg%3E",
+                sizes: "512x512",
+                type: "image/svg+xml"
+            }]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
+        document.getElementById('pwa-manifest').setAttribute('href', URL.createObjectURL(manifestBlob));
+
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installBtn').classList.remove('hidden');
+        });
+
+        function installPWA() {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(() => {
+                deferredPrompt = null;
+                document.getElementById('installBtn').classList.add('hidden');
+            });
+        }
+
+        // 2. Logika Generator
+        let uploadedFileName = "";
+        let savedPrompts = JSON.parse(localStorage.getItem('dump_ai_history') || '[]');
+        updateHistoryUI();
+
+        const presets = {
+            flash: {
+                activity: "sitting at a roadside street food stall at night, holding a drink, candid mid-laugh expression, wearing casual oversized sweatshirt, messy table in background",
+                camera: "shot on iPhone 13, raw unedited camera roll photo, direct harsh flash at night, sharp shadows"
+            },
+            wide: {
+                activity: "taking a high-angle 0.5x selfie with peace sign, hanging out outdoors with city street background, casual streetwear outfit, natural sunlight",
+                camera: "shot on iPhone 14 front camera, 0.5x ultra wide angle distortion, casual handheld selfie"
+            },
+            mirror: {
+                activity: "taking a casual mirror selfie in a cozy messy bedroom, holding an iPhone in a pastel case, wearing oversized tee, natural indoor room light",
+                camera: "casual mirror selfie taken on iPhone, bedroom ambient lighting, unposed everyday snapshot"
+            },
+            street: {
+                activity: "eating Indonesian street food at night roadside stall, wearing vintage denim jacket, candid expression, parked motorcycles and warm street lights in background",
+                camera: "shot on iPhone 13, raw unedited camera roll photo, direct harsh flash at night, sharp shadows"
+            }
+        };
+
+        function applyPreset(type) {
+            const p = presets[type];
+            if (!p) return;
+            document.getElementById('activity').value = p.activity;
+            document.getElementById('camera').value = p.camera;
+            generatePrompt();
+        }
+
+        function appendTag(tag) {
+            const box = document.getElementById('activity');
+            const current = box.value.trim();
+            if (current.includes(tag)) return;
+            box.value = current ? `${current}, ${tag}` : tag;
+            generatePrompt();
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            uploadedFileName = file.name;
+            document.getElementById('fileName').innerText = uploadedFileName;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('facePreview');
+                img.src = e.target.result;
+                img.classList.remove('hidden');
+                document.getElementById('facePlaceholder').classList.add('hidden');
+                generatePrompt();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function generatePrompt() {
+            const activity = document.getElementById('activity').value.trim();
+            const camera = document.getElementById('camera').value;
+            const ratio = document.getElementById('ratio').value;
+            const keepIdentity = document.getElementById('keepIdentity').checked;
+            const optSkinHair = document.getElementById('optSkinHair').checked;
+            const optAntiBokeh = document.getElementById('optAntiBokeh').checked;
+
+            const toggleLabel = document.getElementById('toggleLabel');
+            toggleLabel.innerText = keepIdentity ? "LOCKED 🔒" : "OFF";
+            toggleLabel.className = keepIdentity ? "text-[11px] font-mono font-bold text-acid" : "text-[11px] font-mono font-bold text-zinc-500";
+
+            if (!activity && !uploadedFileName) {
+                document.getElementById('output').value = '';
+                return;
+            }
+
+            let parts = [];
+            if (keepIdentity) {
+                const refText = uploadedFileName ? `Based on the attached reference photo (${uploadedFileName}), ` : `Based on the attached reference face photo, `;
+                parts.push(refText + "candid smartphone photo of the exact same person from the reference image, strictly preserving identical facial features, eye shape, nose, jawline, and natural proportions");
+            } else {
+                parts.push("Candid smartphone photo of");
+            }
+
+            if (activity) parts.push(activity);
+            parts.push(camera);
+
+            if (optSkinHair) {
+                parts.push("matching natural skin tone, unretouched skin texture with visible pores and slight natural shine, zero beauty filter");
+            }
+            if (optAntiBokeh) {
+                parts.push("deep depth of field typical of a small smartphone sensor, sharp background details without artificial DSLR bokeh, slightly tilted casual framing");
+            }
+
+            let finalPrompt = parts.join(', ') + ".";
+            if (ratio) finalPrompt += ` ${ratio}`;
+
+            document.getElementById('output').value = finalPrompt;
+        }
+
+        function copyText(elementId, btnId, defaultText) {
+            const textBox = document.getElementById(elementId);
+            if (!textBox.value) return;
+
+            navigator.clipboard.writeText(textBox.value).then(() => {
+                const btn = document.getElementById(btnId);
+                btn.innerHTML = `<i class="fas fa-check"></i> <span>Copied!</span>`;
+                setTimeout(() => {
+                    const icon = elementId === 'output' ? 'fa-copy' : 'fa-ban text-bubblegum';
+                    btn.innerHTML = `<i class="fas ${icon}"></i> <span>${defaultText}</span>`;
+                }, 1500);
+            });
+        }
+
+        function saveToHistory() {
+            const promptText = document.getElementById('output').value.trim();
+            if (!promptText) return;
+
+            savedPrompts.unshift({
+                id: Date.now(),
+                text: promptText,
+                date: new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})
+            });
+            if (savedPrompts.length > 20) savedPrompts.pop();
+            localStorage.setItem('dump_ai_history', JSON.stringify(savedPrompts));
+            updateHistoryUI();
+            alert("Prompt tersimpan ke Riwayat!");
+        }
+
+        function updateHistoryUI() {
+            document.getElementById('historyCount').innerText = savedPrompts.length;
+            const list = document.getElementById('historyList');
+            if (savedPrompts.length === 0) {
+                list.innerHTML = `<p class="text-xs text-zinc-500 text-center py-8 font-mono">Belum ada prompt yang disimpan.</p>`;
+                return;
+            }
+            list.innerHTML = savedPrompts.map(item => `
+                <div class="bg-cardbg border border-zinc-800 rounded-2xl p-4 space-y-2">
+                    <div class="flex justify-between items-center text-[11px] font-mono text-zinc-400">
+                        <span>Saved at ${item.date}</span>
+                        <button onclick="deleteHistory(${item.id})" class="text-rose-400 hover:underline cursor-pointer">Hapus</button>
+                    </div>
+                    <p class="text-xs text-zinc-200 font-mono leading-relaxed">${item.text}</p>
+                    <button onclick="navigator.clipboard.writeText(\`${item.text.replace(/`/g, '\\`')}\`); alert('Tersalin!')" 
+                        class="text-xs font-bold text-acid hover:underline cursor-pointer">
+                        <i class="fas fa-copy mr-1"></i> Salin Ulang
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function deleteHistory(id) {
+            savedPrompts = savedPrompts.filter(i => i.id !== id);
+            localStorage.setItem('dump_ai_history', JSON.stringify(savedPrompts));
+            updateHistoryUI();
+        }
+
+        function switchTab(tab) {
+            const builder = document.getElementById('builderView');
+            const history = document.getElementById('historyView');
+            if (tab === 'history') {
+                builder.classList.add('hidden');
+                history.classList.remove('hidden');
+            } else {
+                history.classList.add('hidden');
+                builder.classList.remove('hidden');
+            }
+        }
+
+        function resetForm() {
+            uploadedFileName = "";
+            document.getElementById('faceInput').value = '';
+            document.getElementById('facePreview').classList.add('hidden');
+            document.getElementById('facePlaceholder').classList.remove('hidden');
+            document.getElementById('fileName').innerText = 'Pilih Foto Wajah';
+            document.getElementById('activity').value = '';
+            generatePrompt();
+        }
+    </script>
+</body>
+</html>
 
